@@ -11,7 +11,6 @@ def matrix_to_bytes(state):
     return bytes(state[row][col] for col in range(4) for row in range(4))
 
 
-# Standard AES forward S-box
 
 SBOX = [
     0x63,
@@ -272,7 +271,7 @@ SBOX = [
     0x16,
 ]
 
-# Construct inverse S-box
+
 
 INV_SBOX = [0] * 256
 
@@ -328,7 +327,6 @@ def gf_multiply(a, b):
 
 
 def inv_mix_columns(state):
-    """Apply inverse MixColumns transformation."""
 
     for col in range(4):
 
