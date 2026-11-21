@@ -1,21 +1,14 @@
 def bytes_to_matrix(data):
-    
+
     if len(data) != 16:
         raise ValueError("AES block must contain exactly 16 bytes")
 
-    return [
-        [data[row + 4 * col] for col in range(4)] 
-        for row in range(4)
-    ]
+    return [[data[row + 4 * col] for col in range(4)] for row in range(4)]
 
 
 def matrix_to_bytes(state):
 
-    return bytes(
-        state[row][col]
-        for col in range(4)
-        for row in range(4)
-    )
+    return bytes(state[row][col] for col in range(4) for row in range(4))
 
 
 # Standard AES forward S-box
@@ -288,26 +281,23 @@ for i, value in enumerate(SBOX):
 
 
 def inv_sub_bytes(state):
-    
+
     for row in range(4):
         for col in range(4):
             state[row][col] = INV_SBOX[state[row][col]]
-            
+
     return state
+
 
 def inv_shift_rows(state):
-    
+
     for row in range(4):
-        state[row] = (
-            state[row][-row:] + state[row][:-row]
-            
-            if row != 0 else state[row]
-        )
-        
+        state[row] = state[row][-row:] + state[row][:-row] if row != 0 else state[row]
+
     return state
 
 
-def add_round_key(state,round_key):
+def add_round_key(state, round_key):
 
     for row in range(4):
         for col in range(4):
@@ -317,10 +307,6 @@ def add_round_key(state,round_key):
 
 
 def gf_multiply(a, b):
-    """
-    Multiply two bytes in GF(2^8).
-    Reduction polynomial: 0x11B.
-    """
 
     result = 0
 
@@ -386,32 +372,25 @@ RCON = [0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
 
 
 def rot_word(word):
-    """Rotate a 4-byte word left by one byte."""
+    
 
     return word[1:] + word[:1]
 
 
 def sub_word(word):
-    """Apply forward S-box to all four bytes."""
-
+    
     return [SBOX[b] for b in word]
 
 
 def key_expansion(key):
-    """
-    Generate all 11 AES-128 round keys.
-
-    Input: 16-byte key
-    Output: 11 matrices of 4x4 bytes
-    """
+  
 
     if len(key) != 16:
         raise ValueError("AES-128 key must contain exactly 16 bytes")
 
-    # Initial four words
     words = [list(key[i : i + 4]) for i in range(0, 16, 4)]
 
-    # Generate remaining 40 words
+    
     for i in range(4, 44):
 
         temp = words[i - 1].copy()
@@ -429,7 +408,6 @@ def key_expansion(key):
 
         words.append(new_word)
 
-    # Convert words into 11 round-key matrices
     round_keys = []
 
     for round_number in range(11):
@@ -445,16 +423,6 @@ def key_expansion(key):
 
 
 def aes128_decrypt(ciphertext, key):
-    """
-    Decrypt one AES-128 ciphertext block.
-
-    Parameters:
-        ciphertext: 16-byte ciphertext
-        key:        16-byte secret key
-
-    Returns:
-        16-byte plaintext
-    """
 
     if len(ciphertext) != 16:
         raise ValueError("Ciphertext must contain exactly 16 bytes")
@@ -462,16 +430,14 @@ def aes128_decrypt(ciphertext, key):
     if len(key) != 16:
         raise ValueError("Key must contain exactly 16 bytes")
 
-    # Step 1: Generate all round keys
+    
     round_keys = key_expansion(key)
 
-    # Step 2: Convert ciphertext to state matrix
+
     state = bytes_to_matrix(ciphertext)
 
-    # Step 3: Initial AddRoundKey using K10
     add_round_key(state, round_keys[10])
 
-    # Steps 4-6: Main decryption rounds (9 to 1)
     for round_number in range(9, 0, -1):
 
         inv_shift_rows(state)
@@ -482,14 +448,14 @@ def aes128_decrypt(ciphertext, key):
 
         inv_mix_columns(state)
 
-    # Step 7: Final round (Round 0)
+    
     inv_shift_rows(state)
 
     inv_sub_bytes(state)
 
     add_round_key(state, round_keys[0])
 
-    # Step 8: Convert state back to bytes
+    
     plaintext = matrix_to_bytes(state)
 
     return plaintext
@@ -497,7 +463,6 @@ def aes128_decrypt(ciphertext, key):
 
 if __name__ == "__main__":
 
-    # Standard AES-128 test vector
 
     key = bytes.fromhex("000102030405060708090a0b0c0d0e0f")
 
@@ -505,19 +470,14 @@ if __name__ == "__main__":
 
     expected_plaintext = bytes.fromhex("00112233445566778899aabbccddeeff")
 
-    # Perform decryption
     plaintext = aes128_decrypt(ciphertext, key)
 
-    print("=" * 55)
-    print("             AES-128 DECRYPTION")
-    print("=" * 55)
 
     print("Secret Key       :", key.hex())
     print("Ciphertext       :", ciphertext.hex())
     print("Decrypted Text   :", plaintext.hex())
     print("Expected Text    :", expected_plaintext.hex())
 
-    print("-" * 55)
 
     if plaintext == expected_plaintext:
 
@@ -526,11 +486,3 @@ if __name__ == "__main__":
     else:
 
         print("RESULT: DECRYPTION FAILED!")
-
-    print("=" * 55)
-
-    # Display plaintext as ASCII if printable
-    try:
-        print("ASCII Plaintext  :", plaintext.decode("ascii"))
-    except UnicodeDecodeError:
-        print("Plaintext is not printable ASCII.")
